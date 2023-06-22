@@ -1,0 +1,103 @@
+local RP = game:GetService("ReplicatedStorage")
+local fishes = RP.Fishes:GetChildren()
+
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local casted = false
+local catchable = false
+local justcaught = false
+
+local UI = script.Parent
+local FUI = script.Parent.Parent.StartUI
+local CastButton = UI.CastButton
+local CatchButton = UI.CatchButton
+local PlayButton = FUI.Play
+local spr = require(script.spr)
+
+local castAnim = Instance.new("Animation")
+castAnim.AnimationId = "rbxassetid://13757466727"
+local castTrack = humanoid.Animator:LoadAnimation(castAnim)
+
+local catchAnim = Instance.new("Animation")
+catchAnim.AnimationId = "rbxassetid://13769413316"
+local CatchTrack = humanoid.Animator:LoadAnimation(catchAnim)
+
+PlayButton.MouseButton1Click:Connect(function()
+	
+	spr.target(PlayButton, 0.6, 4, {Size = UDim2.fromOffset(225, 75)})
+	
+	wait(0.0875)
+	
+	spr.target(PlayButton, 0.6, 4, {Size = UDim2.fromOffset(200, 50)})
+	
+	wait(0.5)
+	FUI.Text.Visible = false
+	FUI.Play.Visible = false
+	
+	for i = 24, 0, -0.5 do
+		
+		game.Lighting.Blur.Size = i
+		wait()
+	end
+	
+	UI.Enabled = true
+	
+end)
+
+CastButton.MouseButton1Click:Connect(function()
+	
+	if casted == false then
+		
+	spr.target(CastButton, 0.3, 4, {Size = UDim2.fromOffset(125, 75)})
+	casted = true
+	wait(0.0875)
+	
+	castTrack:Play()
+	
+		spr.target(CastButton, 0.3, 4, {Size = UDim2.fromOffset(100, 50)})
+		
+		wait(0.15)
+		workspace.Emitter.ParticleEmitter:Emit(50)
+		
+	
+		wait(math.random(3,10))
+		
+		catchable = true
+		CastButton.Visible = false
+		
+		spr.target(CatchButton, 0.3, 4, {Size = UDim2.fromOffset(125, 75)})
+
+		wait(0.0875)
+
+		spr.target(CatchButton, 0.3, 4, {Size = UDim2.fromOffset(100, 50)})
+		
+	end
+	
+end)
+
+CatchButton.MouseButton1Click:Connect(function()
+	
+	if catchable == true then
+		catchable = false
+		CatchTrack:Play()
+		wait(0.1)
+		workspace.Emitter.ParticleEmitter:Emit(50)
+		CatchTrack.Stopped:Wait()
+		
+		CastButton.Visible = true
+		
+		CastButton.Text = "Cast"
+		casted = false
+		justcaught = true
+
+		local fish = fishes[math.random(1, #fishes)]
+		UI.CatchFrame.FishText.Text = fish.Value
+		print(fish.Value)
+		UI.CatchFrame.Visible = true
+		wait(3)
+		UI.CatchFrame.Visible = false
+
+	end
+	
+end)
