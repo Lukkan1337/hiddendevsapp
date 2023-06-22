@@ -1,0 +1,190 @@
+local camera = workspace.CurrentCamera
+local viewmodel = game.ReplicatedStorage.Viewmodel
+local player = game.Players.LocalPlayer
+local starterGui = game:GetService("StarterGui")
+
+starterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+
+player.CameraMode = Enum.CameraMode.LockFirstPerson
+
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local animator
+local mouse = player:GetMouse()
+
+local run = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
+
+uis.MouseIconEnabled = false
+
+local RPM = 60/240
+local reloadTime = 0.5
+local Ammo = script.Ammo
+Ammo.Value = 20
+
+local fireCooldown = true
+local fireStop = false
+local reloadCooldown = true
+local spawnViewmodel = true
+
+run.RenderStepped:Connect(function()
+	
+	if humanoid.Health == 0 then
+		if camera:FindFirstChild("Viewmodel").Parent == camera then
+			viewmodel:Destroy()
+			spawnViewmodel = true
+		end
+	end
+	
+		if camera:FindFirstChild("Viewmodel") == nil and spawnViewmodel == true then
+			local vmClone = viewmodel:Clone()
+		vmClone.Parent = camera
+	else
+		if camera:FindFirstChild("Viewmodel") then
+		camera.Viewmodel:SetPrimaryPartCFrame(camera.CFrame)
+			camera.CFrame = camera.Viewmodel.CameraBone.CFrame
+			end
+	end
+	
+end)
+
+humanoid.Running:Connect(function()
+	
+	if camera:FindFirstChild("Viewmodel") then
+		
+	local idleTrack = camera:FindFirstChild("Viewmodel"):WaitForChild("Humanoid").Animator:LoadAnimation(script.Idle)
+		idleTrack:Play()
+		
+	end
+end)
+
+mouse.Button1Down:Connect(function()
+	if fireCooldown == true and Ammo.Value > 0 and camera:FindFirstChild("Viewmodel") then
+		
+		local fireTrack = camera:FindFirstChild("Viewmodel").Humanoid.Animator:LoadAnimation(script.Fire)
+		fireTrack.Looped = false
+		
+		fireStop = true
+		
+		repeat
+			if Ammo.Value > 0 then
+			fireCooldown = false
+			Ammo.Value = Ammo.Value - 1
+				fireTrack:Play()
+				script.FireSound:Play()
+			
+			game.ReplicatedStorage.Fire:FireServer(mouse.Hit.p, camera.Viewmodel.FN.FirePoint.Position, script.Parent.HitMark.HitMark, script.HitMarker, camera.Viewmodel.FN.FirePoint)
+			camera.Viewmodel.FN.FirePoint.MuzzleEffect:Emit(20)
+			
+		wait(RPM)
+
+				fireCooldown = true
+			else
+				return
+				end
+			until fireStop == false
+	else
+		print("not yet")
+	end
+end)
+
+mouse.Button1Up:Connect(function()
+	fireCooldown = false
+	fireStop = false
+	if camera:FindFirstChild("Viewmodel") then
+	local animationlist = camera.Viewmodel.Humanoid.Animator:GetPlayingAnimationTracks()
+	for i, track in pairs(animationlist) do
+		if track.Name == "Fire" then
+			track.Looped = false
+			wait(track.Length)
+				track:Stop()
+				
+				end
+		end
+	end
+	fireCooldown = true
+end)
+
+
+
+uis.InputBegan:Connect(function(input)
+	
+	if input.KeyCode == Enum.KeyCode.R and Ammo.Value ~= 20 then
+		if reloadCooldown == true and camera:FindFirstChild("Viewmodel") then
+			fireCooldown = false
+			fireStop = false
+			
+			local animationlist = camera.Viewmodel.Humanoid.Animator:GetPlayingAnimationTracks()
+			for i, track in pairs(animationlist) do
+				if track.Name == "Fire" then
+					track.Looped = false
+					track.Stopped:Wait()
+					track:Stop()
+					
+					end
+				end
+		
+			local ReloadTrack = camera:FindFirstChild("Viewmodel").Humanoid.Animator:LoadAnimation(script.Reload)
+			ReloadTrack:Play()
+			
+			ReloadTrack:GetMarkerReachedSignal("MagDrop"):Connect(function()
+				
+				script.MagOut:Play()
+				
+			end)
+			
+			ReloadTrack:GetMarkerReachedSignal("MagIn"):Connect(function()
+
+				script.MagIn:Play()
+
+			end)
+			
+			ReloadTrack:GetMarkerReachedSignal("Bolt"):Connect(function()
+
+				script.Bolt:Play()
+
+			end)
+			
+			wait(reloadTime)
+			Ammo.Value = 20
+			ReloadTrack.Stopped:Wait()
+			fireCooldown = true
+			
+		end
+		
+	elseif input.KeyCode == Enum.KeyCode.One then
+		if camera:FindFirstChild("Viewmodel") then
+			
+			fireCooldown = false
+			fireStop = false
+			
+			local unEquipTrack = camera.Viewmodel.Humanoid.Animator:LoadAnimation(script.UnEquip)
+			unEquipTrack:Play()
+			
+			unEquipTrack.Stopped:Wait()
+			
+			camera.Viewmodel.Parent = game.ReplicatedStorage.WeaponStorage
+			spawnViewmodel = false
+		else
+			
+			
+			
+			game.ReplicatedStorage.WeaponStorage:FindFirstChild("Viewmodel").Parent = camera
+			spawnViewmodel = true
+			local EquipTrack = camera.Viewmodel.Humanoid.Animator:LoadAnimation(script.Equip)
+			EquipTrack:Play()
+			
+			EquipTrack.Stopped:Wait()
+			
+			fireCooldown = true
+			fireStop = false
+		end
+	end
+	
+end)
+
+Ammo:GetPropertyChangedSignal("Value"):Connect(function()
+	
+	script.Parent.Ammo.Text.Text = Ammo.Value.."/20"
+	
+	end)
